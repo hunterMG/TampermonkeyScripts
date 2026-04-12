@@ -4,7 +4,7 @@
 // @version      1.0
 // @description  Get the author name, append it to tab title with a postfix, and set it as the new tab title on Weixin official accounts pages.
 // @author       hunterMG
-// @match        https://mp.weixin.qq.com/s/*
+// @match        https://mp.weixin.qq.com/s*
 // @grant        none
 // ==/UserScript==
 
