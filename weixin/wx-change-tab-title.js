@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Weixin official accounts tab title postfix
+// @name         Weixin official accounts tab title suffix
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Get the author name, append it to tab title with a postfix, and set it as the new tab title on Weixin official accounts pages.
+// @description  Get the author name, append it to tab title with a suffix, and set it as the new tab title on Weixin official accounts pages.
 // @author       hunterMG
 // @match        https://mp.weixin.qq.com/s*
 // @grant        none
