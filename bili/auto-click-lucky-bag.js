@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Live Auto Click
 // @namespace    tampermonkey-scripts
-// @version      1.2.0
+// @version      1.3.0
 // @description  Auto click Bilibili live lucky bag actions every minute.
 // @author       Codex
 // @match        https://live.bilibili.com/*
@@ -14,7 +14,10 @@
     'use strict';
 
     const CHECK_INTERVAL_MS = 60 * 1000;
+    const ENABLE_STORAGE_KEY = 'bili-live-auto-click-enabled';
+    const TOGGLE_BUTTON_ID = 'bili-live-auto-click-toggle';
     let hasStarted = false;
+    let isEnabled = window.localStorage.getItem(ENABLE_STORAGE_KEY) === 'true';
 
     function getTimestamp() {
         const now = new Date();
@@ -34,6 +37,67 @@
     function log(message, isPositive = false) {
         const suffix = isPositive ? ' ✅' : '';
         console.log(`[Bili Auto Click][${getTimestamp()}] ${message}${suffix}`);
+    }
+
+    function setEnabled(nextEnabled) {
+        isEnabled = nextEnabled;
+        window.localStorage.setItem(ENABLE_STORAGE_KEY, String(nextEnabled));
+        updateToggleButton();
+        log(`Auto click ${nextEnabled ? 'enabled' : 'disabled'}`, nextEnabled);
+    }
+
+    function updateToggleButton() {
+        const button = document.getElementById(TOGGLE_BUTTON_ID);
+        if (!button) {
+            return;
+        }
+
+        button.textContent = `Auto Click: ${isEnabled ? 'Enabled' : 'Disabled'}`;
+        button.style.background = isEnabled ? '#00aeec' : '#6b7280';
+    }
+
+    function ensureToggleButton() {
+        if (!document.body) {
+            window.requestAnimationFrame(ensureToggleButton);
+            return;
+        }
+
+        let button = document.getElementById(TOGGLE_BUTTON_ID);
+        if (!button) {
+            button = document.createElement('button');
+            button.id = TOGGLE_BUTTON_ID;
+            button.type = 'button';
+            button.style.position = 'fixed';
+            button.style.left = '16px';
+            button.style.top = '50%';
+            button.style.transform = 'translateY(-50%)';
+            button.style.zIndex = '2147483647';
+            button.style.padding = '10px 14px';
+            button.style.border = 'none';
+            button.style.borderRadius = '999px';
+            button.style.color = '#ffffff';
+            button.style.fontSize = '14px';
+            button.style.fontWeight = '700';
+            button.style.cursor = 'pointer';
+            button.style.boxShadow = '0 6px 18px rgba(0, 0, 0, 0.2)';
+            button.style.transition = 'opacity 0.2s ease';
+            button.addEventListener('mouseenter', () => {
+                button.style.opacity = '0.9';
+            });
+            button.addEventListener('mouseleave', () => {
+                button.style.opacity = '1';
+            });
+            button.addEventListener('click', () => {
+                setEnabled(!isEnabled);
+                if (isEnabled) {
+                    runCheck();
+                }
+            });
+            document.body.appendChild(button);
+            log('Enable toggle button added', true);
+        }
+
+        updateToggleButton();
     }
 
     function clickElement(element) {
@@ -127,6 +191,11 @@
     }
 
     function runCheck() {
+        if (!isEnabled) {
+            log('Auto click is disabled; skipping this check');
+            return;
+        }
+
         try {
             const handled = handleLuckyBagFlow();
             if (!handled) {
@@ -144,8 +213,13 @@
         }
 
         hasStarted = true;
+        ensureToggleButton();
         log('DOM loaded, starting auto check loop', true);
-        runCheck();
+        if (isEnabled) {
+            runCheck();
+        } else {
+            log('Auto click is disabled on startup');
+        }
         setInterval(runCheck, CHECK_INTERVAL_MS);
     }
 
