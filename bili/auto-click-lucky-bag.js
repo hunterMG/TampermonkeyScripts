@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Bilibili Live Auto Click
+// @name         Bilibili Live lucky bag Auto Click
 // @namespace    tampermonkey-scripts
 // @version      1.3.0
 // @description  Auto click Bilibili live lucky bag actions every minute.
-// @author       Codex
+// @author       hunterMG
 // @match        https://live.bilibili.com/*
 // @grant        none
 // @license      MIT
@@ -12,6 +12,11 @@
 
 (function () {
     'use strict';
+
+    // Only run in the top-level document to avoid duplicate UI in embedded frames.
+    if (window.top !== window.self) {
+        return;
+    }
 
     const CHECK_INTERVAL_MS = 60 * 1000;
     const ENABLE_STORAGE_KEY = 'bili-live-auto-click-enabled';
