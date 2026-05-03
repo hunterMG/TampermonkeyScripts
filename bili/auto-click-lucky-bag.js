@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Live lucky bag Auto Click
 // @namespace    tampermonkey-scripts
-// @version      1.3.0
+// @version      2026.05.03
 // @description  Auto click Bilibili live lucky bag actions every minute.
 // @author       hunterMG
 // @match        https://live.bilibili.com/*
