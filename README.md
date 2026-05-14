@@ -6,6 +6,10 @@ Useful scripts for TamperMonkey.
 
 Apply to ALL 20 positions in the page automatically. (It might get banned.)
 
-## [Weixin official accounts tab title suffix](./weixin/wx-change-tab-title.js)
+## [Page tab title suffix](./weixin/wx-change-tab-title.js)
 
-Add the author's name as a suffix to the tab title to enhance the user experience of [Notion Web Clipper]. [Notion Web Clipper](https://www.notion.com/web-clipper).
+Appends the author name as a suffix to the browser tab title on
+- Weixin official account articles (`mp.weixin.qq.com/s*`)
+- Bilibili videos (`bilibili.com/video/*`)
+
+A lightweight observer defends against page JS overwriting the title. Bilibili uses a bounded observer (max 3 corrections, 30s timeout) to avoid CPU issues, and adds ` - bili` suffix.

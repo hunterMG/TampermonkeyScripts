@@ -1,15 +1,41 @@
 // ==UserScript==
-// @name         Weixin official accounts tab title suffix
+// @name         Page tab title suffix
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Get the author name, append it to tab title with a suffix, and set it as the new tab title on Weixin official accounts pages.
+// @version      1.1
+// @description  Get the author name, append it to tab title with a suffix, and set it as the new tab title on supported pages.
 // @author       hunterMG
 // @match        https://mp.weixin.qq.com/s*
+// @match        https://www.bilibili.com/video/*
 // @grant        none
 // ==/UserScript==
 
 (function() {
     'use strict';
+
+    const pageConfigs = [
+        {
+            name: 'Weixin official account',
+            matches: () => location.hostname === 'mp.weixin.qq.com' && location.pathname.startsWith('/s'),
+            titleSelector: '#activity-name',
+            authorSelector: '#js_name',
+            titleLabel: 'First element(article title)',
+            authorLabel: 'Second element(author name)'
+        },
+        {
+            name: 'Bilibili video',
+            matches: () => location.hostname === 'www.bilibili.com' && location.pathname.startsWith('/video/'),
+            titleSelector: 'h1.video-title, .video-info-title h1',
+            authorSelector: 'a.up-name[href*="space.bilibili.com"], .up-info-container .up-name, .up-name',
+            titleLabel: 'Video title',
+            authorLabel: 'Author name',
+            preferTitleAttribute: true,
+            removeNestedSelector: '.mask',
+            stableTitle: { maxCorrections: 3, timeout: 30000 },
+            titleSuffix: ' - bili'
+        }
+    ];
+
+    let titleObserver = null;
 
     function showNotification(message) {
         const notification = document.createElement('div');
@@ -27,47 +53,131 @@
         setTimeout(() => notification.remove(), totalDuration);
     }
 
-    function handleReady() {
+    function getCurrentPageConfig() {
+        return pageConfigs.find((config) => config.matches());
+    }
+
+    function getElementText(selector, config, isTitle) {
+        const element = document.querySelector(selector);
+        if (!element) {
+            return '';
+        }
+
+        if (isTitle && config.preferTitleAttribute) {
+            const title = element.getAttribute('title');
+            if (title && title.trim()) {
+                return title.trim().replace(/\s+/g, ' ');
+            }
+        }
+
+        let textSource = element;
+        if (!isTitle && config.removeNestedSelector) {
+            textSource = element.cloneNode(true);
+            textSource.querySelectorAll(config.removeNestedSelector).forEach((node) => node.remove());
+        }
+
+        return textSource.textContent.trim().replace(/\s+/g, ' ');
+    }
+
+    function setStableTitle(result, config) {
+        document.title = result;
+        showNotification('Tab Title Changed to【' + result + '】');
+
+        const stableOpts = config && config.stableTitle;
+        if (stableOpts && stableOpts.maxCorrections === 0) {
+            return;
+        }
+
+        // 监听title变化，防止被网页JS覆盖
+        const titleElement = document.querySelector('title');
+        if (!titleElement) return;
+
+        if (titleObserver) {
+            titleObserver.disconnect();
+        }
+
+        let corrections = 0;
+        const startTime = Date.now();
+        const maxCorrections = (stableOpts && stableOpts.maxCorrections) || Infinity;
+        const maxAge = (stableOpts && stableOpts.timeout) || Infinity;
+
+        function isExpired() {
+            return corrections >= maxCorrections || (Date.now() - startTime) >= maxAge;
+        }
+
+        titleObserver = new MutationObserver(() => {
+            if (document.title !== result) {
+                titleObserver.disconnect();
+                document.title = result;
+                corrections++;
+                if (!isExpired()) {
+                    titleObserver.observe(titleElement, { childList: true, characterData: true });
+                }
+            }
+        });
+        titleObserver.observe(titleElement, { childList: true, characterData: true });
+    }
+
+    function handleReady(showWarning) {
         try {
+            const config = getCurrentPageConfig();
+            if (!config) {
+                return true;
+            }
 
             // 获取第一个元素的文本（article title）
-            const elem1 = document.querySelector('#activity-name');
-            const text1 = elem1 ? elem1.textContent.trim() : '';
+            const text1 = getElementText(config.titleSelector, config, true);
             
             // 获取第二个元素的文本
-            const elem2 = document.querySelector('#js_name');
-            const text2 = elem2 ? elem2.textContent.trim() : '';
+            const text2 = getElementText(config.authorSelector, config, false);
             
             // 检查是否获取到文本
             if (!text1 || !text2) {
-                showNotification('Warning: Failed to find one or both elements!\nFirst element(article title): ' + (text1 ? '✓' : '✗') + '\nSecond element(author name): ' + (text2 ? '✓' : '✗'));
-                return;
+                if (showWarning) {
+                    showNotification('Warning: Failed to find one or both elements on ' + config.name + '!\n' + config.titleLabel + ': ' + (text1 ? '✓' : '✗') + '\n' + config.authorLabel + ': ' + (text2 ? '✓' : '✗'));
+                }
+                return false;
             }
             
-            // 用"_"拼接两个文本
-            const result = text1 + '_' + text2
+            // 用" - "拼接两个文本
+            let result = text1 + ' - ' + text2
+            if (config.titleSuffix) {
+                result += config.titleSuffix;
+            }
             
             // 设置标签页标题
-            document.title = result;
-            showNotification('Tab Title Changed to【' + result + '】');
-            
-            // 监听title变化，防止被网页JS覆盖
-            const titleElement = document.querySelector('title');
-            if (titleElement) {
-                const observer = new MutationObserver(() => {
-                    if (document.title !== result) {
-                        document.title = result;
-                    }
-                });
-                observer.observe(titleElement, { childList: true, subtree: true, characterData: true });
-            }
+            setStableTitle(result, config);
+            return true;
         } catch(err) {
             showNotification('Error: ' + err);
+            return true;
         }
     }
 
+    function waitForReady() {
+        const startTime = Date.now();
+        const timeout = 15000;
+
+        function tryHandleReady() {
+            if (handleReady(false)) {
+                return;
+            }
+
+            if (Date.now() - startTime >= timeout) {
+                handleReady(true);
+                return;
+            }
+
+            setTimeout(tryHandleReady, 500);
+        }
+
+        tryHandleReady();
+    }
+
     // 等待所有资源加载完成，以及页面本身的JS执行完成后执行
-    window.addEventListener('load', () => {
-        setTimeout(handleReady, 0);
-    });
+    if (document.readyState === 'loading') {
+        window.addEventListener('load', waitForReady);
+    } else {
+        setTimeout(waitForReady, 0);
+    }
 })();
