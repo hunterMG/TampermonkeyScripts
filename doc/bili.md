@@ -1,4 +1,4 @@
-# wx-change-tab-title.js — Bilibili fixes
+# wx-change-tab-title.user.js — Bilibili fixes
 
 ## Problem
 The `MutationObserver` in `setStableTitle` caused browser high CPU usage, freezing, and crashes. Two issues:
@@ -20,4 +20,4 @@ Replaced boolean `useStableTitle: false` with a configurable `stableTitle` objec
 Added `titleSuffix: ' - bili'` so tab titles appear as `Video Title - Author Name - bili`.
 
 ## Key files
-- `weixin/wx-change-tab-title.js` — the user script
+- `weixin/wx-change-tab-title.user.js` — the user script
