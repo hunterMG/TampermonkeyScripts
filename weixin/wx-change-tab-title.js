@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Page tab title suffix
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      2026.05.18
 // @description  Get the author name, append it to tab title with a suffix, and set it as the new tab title on supported pages.
 // @author       hunterMG
 // @match        https://mp.weixin.qq.com/s*
@@ -31,7 +31,7 @@
             preferTitleAttribute: true,
             removeNestedSelector: '.mask',
             stableTitle: { maxCorrections: 3, timeout: 30000 },
-            titleSuffix: ' - bili'
+            titleSuffix: '_bili'
         }
     ];
 
