@@ -1,12 +1,14 @@
 // ==UserScript==
 // @name         Page tab title suffix
-// @namespace    http://tampermonkey.net/
-// @version      2026.05.18
+// @namespace    https://github.com/hunterMG/TampermonkeyScripts/
+// @version      2026.05.18.01
 // @description  Get the author name, append it to tab title with a suffix, and set it as the new tab title on supported pages.
 // @author       hunterMG
 // @match        https://mp.weixin.qq.com/s*
 // @match        https://www.bilibili.com/video/*
 // @grant        none
+// @run-at       document-end
+// @downloadURL    https://raw.githubusercontent.com/hunterMG/TampermonkeyScripts/main/weixin/wx-change-tab-title.js
 // ==/UserScript==
 
 (function() {
