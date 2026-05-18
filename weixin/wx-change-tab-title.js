@@ -9,6 +9,7 @@
 // @grant        none
 // @run-at       document-end
 // @downloadURL    https://raw.githubusercontent.com/hunterMG/TampermonkeyScripts/main/weixin/wx-change-tab-title.js
+// @updateURL      https://raw.githubusercontent.com/hunterMG/TampermonkeyScripts/main/weixin/wx-change-tab-title.js
 // ==/UserScript==
 
 (function() {

@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         51JobAutoApply
-// @namespace    your-namespace
+// @namespace    https://github.com/hunterMG/TampermonkeyScripts/
 // @version      1.0
 // @description  在页面左下角添加按钮，点击按钮执行指定代码
-// @author       Your Name
+// @author       hunterMG
 // @match        https://we.51job.com/*
 // @grant        none
 // @license MIT
