@@ -57,8 +57,11 @@
             return;
         }
 
-        button.textContent = `Auto Click: ${isEnabled ? 'Enabled' : 'Disabled'}`;
-        button.style.background = isEnabled ? '#00aeec' : '#6b7280';
+        const textEl = button.querySelector('.toggle-text');
+        if (textEl) {
+            textEl.textContent = `Auto Click: ${isEnabled ? 'Enabled' : 'Disabled'}`;
+        }
+        button.style.backgroundColor = isEnabled ? '#23AEE5' : '#6b7280';
     }
 
     function ensureToggleButton() {
@@ -77,20 +80,40 @@
             button.style.top = '50%';
             button.style.transform = 'translateY(-50%)';
             button.style.zIndex = '2147483647';
-            button.style.padding = '10px 14px';
             button.style.border = 'none';
-            button.style.borderRadius = '999px';
             button.style.color = '#ffffff';
             button.style.fontSize = '14px';
             button.style.fontWeight = '700';
             button.style.cursor = 'pointer';
             button.style.boxShadow = '0 6px 18px rgba(0, 0, 0, 0.2)';
-            button.style.transition = 'opacity 0.2s ease';
+            button.style.display = 'flex';
+            button.style.alignItems = 'center';
+            button.style.padding = '0';
+            button.style.width = '10px';
+            button.style.height = '10px';
+            button.style.borderRadius = '50%';
+            button.style.transition = 'all 0.2s ease';
+            button.style.overflow = 'hidden';
+            button.style.whiteSpace = 'nowrap';
+
+            const textEl = document.createElement('span');
+            textEl.className = 'toggle-text';
+            textEl.style.paddingLeft = '14px';
+            textEl.style.opacity = '0';
+            textEl.style.transition = 'opacity 0.15s ease';
+            button.appendChild(textEl);
+
             button.addEventListener('mouseenter', () => {
-                button.style.opacity = '0.9';
+                button.style.width = '';
+                button.style.padding = '10px 16px 10px 14px';
+                button.style.borderRadius = '999px';
+                textEl.style.opacity = '1';
             });
             button.addEventListener('mouseleave', () => {
-                button.style.opacity = '1';
+                button.style.width = '10px';
+                button.style.padding = '0';
+                button.style.borderRadius = '50%';
+                textEl.style.opacity = '0';
             });
             button.addEventListener('click', () => {
                 setEnabled(!isEnabled);
