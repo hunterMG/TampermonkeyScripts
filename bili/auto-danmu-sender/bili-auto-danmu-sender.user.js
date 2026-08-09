@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          bilibili自动发送直播弹幕
 // @namespace     https://greasyfork.org/zh-CN/users/1196880-ling2ling4
-// @version       1.3.0
+// @version       1.3.1
 // @author        Ling2Ling4
 // @description   bilibili自动发送直播弹幕, 刷屏和互动专用, 右上角插件菜单中启动
 // @license       AGPL-3.0-or-later
@@ -1469,12 +1469,94 @@
     (ctlBtn = document.createElement("div")),
       (ctlBtn.id = "ll-auto-dm-ctl-btn"),
       (ctlBtn.style.cssText =
-        "position: fixed; right: 20px; bottom: 90px; z-index: 99999; padding: 8px 14px; border-radius: 6px; color: #fff; font-size: 14px; line-height: 1.4; cursor: pointer; user-select: none; box-shadow: 0 2px 8px rgba(0,0,0,.3); background: #888;"),
+        "padding: 8px 14px; border-radius: 6px; color: #fff; font-size: 14px; line-height: 1.4; cursor: pointer; user-select: none; box-shadow: 0 2px 8px rgba(0,0,0,.3); background: #888; text-align: center;"),
       (ctlBtn.textContent = "自动弹幕"),
       (ctlBtn.title = "点击开启/关闭自动弹幕"),
       ctlBtn.addEventListener("click", () => toggleAuto()),
-      document.body.appendChild(ctlBtn),
+      (function createCtlPanel() {
+        const box = document.createElement("div");
+        (box.id = "ll-auto-dm-ctl-box"),
+          (box.style.cssText =
+            "position: fixed; right: 20px; bottom: 90px; z-index: 99999; display: flex; flex-direction: column; align-items: stretch; gap: 6px; cursor: move; user-select: none;"),
+          box.appendChild(ctlBtn);
+        const input = document.createElement("textarea");
+        (input.id = "ll-auto-dm-ctl-input"),
+          (input.placeholder = "输入要发送的弹幕内容"),
+          (input.style.cssText =
+            "width: 180px; height: 60px; padding: 5px 7px; border-radius: 6px; border: 1px solid #aaa; font-size: 13px; line-height: 1.4; resize: vertical; box-sizing: border-box; outline-color: #cee4ff; white-space: pre-wrap; word-break: break-all; cursor: text; user-select: text;"),
+          (input.value = settings.dmText.value),
+          box.appendChild(input);
+        const saveBtn = document.createElement("button");
+        (saveBtn.style.cssText =
+          "padding: 6px 12px; border-radius: 6px; border: none; color: #fff; font-size: 13px; line-height: 1.4; cursor: move; background: #65aaff;"),
+          (saveBtn.textContent = "保存弹幕"),
+          saveBtn.addEventListener("click", () => saveDmText()),
+          box.appendChild(saveBtn),
+          document.body.appendChild(box),
+          (function bindDrag(box) {
+            const startPos = { x: 0, y: 0, left: 0, top: 0 };
+            let isDrag = !1,
+              isMove = !1;
+            box.addEventListener("mousedown", (e) => {
+              if (0 !== e.button) return;
+              if (e.target.closest && e.target.closest("textarea")) return;
+              const rect = box.getBoundingClientRect();
+              (startPos.x = e.clientX),
+                (startPos.y = e.clientY),
+                (startPos.left = rect.left),
+                (startPos.top = rect.top),
+                (isDrag = !0),
+                (isMove = !1),
+                (box.style.right = "auto"),
+                (box.style.bottom = "auto"),
+                (box.style.left = rect.left + "px"),
+                (box.style.top = rect.top + "px");
+              const onMove = (ev) => {
+                if (!isDrag) return;
+                const dx = ev.clientX - startPos.x,
+                  dy = ev.clientY - startPos.y;
+                (Math.abs(dx) > 3 || Math.abs(dy) > 3) && (isMove = !0),
+                  (box.style.left = startPos.left + dx + "px"),
+                  (box.style.top = startPos.top + dy + "px");
+              };
+              const onUp = () => {
+                isDrag && (isDrag = !1);
+                document.removeEventListener("mousemove", onMove),
+                  document.removeEventListener("mouseup", onUp);
+                if (isMove) {
+                  const stopClick = (ev) => {
+                    ev.preventDefault(),
+                      ev.stopPropagation(),
+                      document.removeEventListener("click", stopClick, !0);
+                  };
+                  document.addEventListener("click", stopClick, !0),
+                    setTimeout(
+                      () => document.removeEventListener("click", stopClick, !0),
+                      300
+                    );
+                }
+                isMove = !1;
+              };
+              document.addEventListener("mousemove", onMove),
+                document.addEventListener("mouseup", onUp);
+            });
+          })(box);
+      })(),
       updateCtlBtn();
+  }
+  function saveDmText() {
+    const input = document.getElementById("ll-auto-dm-ctl-input"),
+      text = input && input.value ? input.value.trim() : "";
+    if (!text)
+      return (
+        settings.isCloseTips.value ||
+          GM_notification({ text: "弹幕内容不能为空", timeout: 2000 }),
+        void 0
+      );
+    (settings.dmText.value = text),
+      GM_setValue(settings.dmText.key, text),
+      settings.isCloseTips.value ||
+        GM_notification({ text: "弹幕内容已保存", timeout: 2000 });
   }
   function updateCtlBtn() {
     ctlBtn &&
