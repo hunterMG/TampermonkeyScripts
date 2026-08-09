@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          bilibili自动发送直播弹幕
 // @namespace     https://greasyfork.org/zh-CN/users/1196880-ling2ling4
-// @version       1.3.1
+// @version       1.3.2
 // @author        Ling2Ling4
 // @description   bilibili自动发送直播弹幕, 刷屏和互动专用, 右上角插件菜单中启动
 // @license       AGPL-3.0-or-later
@@ -1493,6 +1493,22 @@
           saveBtn.addEventListener("click", () => saveDmText()),
           box.appendChild(saveBtn),
           document.body.appendChild(box),
+          (function restorePos(box) {
+            try {
+              const pos = JSON.parse(
+                GM_getValue(keyBase + "ctlPanePos", "{}")
+              );
+              pos.x &&
+                ((box.style.right = "auto"),
+                (box.style.bottom = "auto"),
+                (box.style.left =
+                  Math.max(0, Math.min(pos.x, innerWidth - box.offsetWidth)) +
+                  "px"),
+                (box.style.top =
+                  Math.max(0, Math.min(pos.y, innerHeight - box.offsetHeight)) +
+                  "px"));
+            } catch (e) {}
+          })(box),
           (function bindDrag(box) {
             const startPos = { x: 0, y: 0, left: 0, top: 0 };
             let isDrag = !1,
@@ -1515,15 +1531,29 @@
                 if (!isDrag) return;
                 const dx = ev.clientX - startPos.x,
                   dy = ev.clientY - startPos.y;
-                (Math.abs(dx) > 3 || Math.abs(dy) > 3) && (isMove = !0),
-                  (box.style.left = startPos.left + dx + "px"),
-                  (box.style.top = startPos.top + dy + "px");
+                (Math.abs(dx) > 3 || Math.abs(dy) > 3) && (isMove = !0);
+                const nx = Math.max(
+                    0,
+                    Math.min(startPos.left + dx, innerWidth - box.offsetWidth)
+                  ),
+                  ny = Math.max(
+                    0,
+                    Math.min(startPos.top + dy, innerHeight - box.offsetHeight)
+                  );
+                (box.style.left = nx + "px"), (box.style.top = ny + "px");
               };
               const onUp = () => {
                 isDrag && (isDrag = !1);
                 document.removeEventListener("mousemove", onMove),
                   document.removeEventListener("mouseup", onUp);
                 if (isMove) {
+                  GM_setValue(
+                    keyBase + "ctlPanePos",
+                    JSON.stringify({
+                      x: parseInt(box.style.left),
+                      y: parseInt(box.style.top),
+                    })
+                  );
                   const stopClick = (ev) => {
                     ev.preventDefault(),
                       ev.stopPropagation(),
