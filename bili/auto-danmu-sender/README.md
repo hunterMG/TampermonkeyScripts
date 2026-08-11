@@ -3,6 +3,14 @@
 Original URL:
 <https://greasyfork.org/zh-CN/scripts/495189-bilibili%E8%87%AA%E5%8A%A8%E5%8F%91%E9%80%81%E7%9B%B4%E6%92%AD%E5%BC%B9%E5%B9%95>
 
+## Warning
+
+频率太快会触发 HTTP code 412。
+
+```bash
+412 Precondition Failed
+```
+
 ## Changelog
 
 v1.3.2
