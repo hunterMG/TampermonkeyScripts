@@ -17,3 +17,9 @@ Appends the author name as a suffix to the browser tab title on
 - Bilibili videos (`bilibili.com/video/*`)
 
 A lightweight observer defends against page JS overwriting the title. Bilibili uses a bounded observer (max 3 corrections, 30s timeout) to avoid CPU issues, and adds ` - bili` suffix.
+
+## [Bilibili auto danmu sender](./bili/auto-danmu-sender/)
+
+[Install via GitHub](https://raw.githubusercontent.com/hunterMG/TampermonkeyScripts/main/bili/auto-danmu-sender/bili-auto-danmu-sender.user.js).
+
+Automatically sends danmu (bullet comments) in Bilibili live rooms (`live.bilibili.com/*`) for interactive use. Features sequential/random sending, an on-page control panel, and quick message editing.

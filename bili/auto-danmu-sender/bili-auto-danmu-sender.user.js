@@ -5,6 +5,11 @@
 // @author        Ling2Ling4
 // @description   bilibili自动发送直播弹幕, 刷屏和互动专用, 右上角插件菜单中启动
 // @license       AGPL-3.0-or-later
+// @copyright     2023 Ling2Ling4 (original author)
+// @copyright     2026 hunterMG (modifications)
+//
+// Modified by hunterMG from the original Greasyfork script by Ling2Ling4.
+// Original URL: https://greasyfork.org/zh-CN/scripts/495189
 // @icon https://raw.githubusercontent.com/hunterMG/TampermonkeyScripts/main/bili/auto-danmu-sender/icon.png
 // @match         *://live.bilibili.com/*
 // @run-at        document-end

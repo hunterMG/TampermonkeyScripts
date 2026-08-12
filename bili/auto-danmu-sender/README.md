@@ -61,3 +61,12 @@ v1.2.6
 发送弹幕的间隔时间可设置成随机时间
 
 ......
+
+## License
+
+Original author: Ling2Ling4 (AGPL-3.0-or-later)
+
+This is a **modified** version of the original Greasyfork script by
+hunterMG. It is distributed under the **GNU Affero General Public License
+v3.0 or later**. See the [`LICENSE`](./LICENSE) file in this directory for the full
+license text.
