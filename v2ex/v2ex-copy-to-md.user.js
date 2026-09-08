@@ -1,11 +1,13 @@
 // ==UserScript==
 // @name         V2EX Copy to Markdown
 // @namespace    https://github.com/hunterMG/TampermonkeyScripts/
-// @version      2026.09.05.06
+// @version      2026.09.08.02
 // @description  Copy a V2EX topic and its current-page comments as Markdown.
 // @author       hunterMG
 // @match        *://*.v2ex.com/t/*
 // @grant        GM_setClipboard
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @run-at       document-end
 // @ref
 // ==/UserScript==
@@ -148,6 +150,8 @@
     // Shadow DOM keeps the controls independent of the site's theme and CSS.
     const host = document.createElement('div');
     host.id = widgetId;
+    // Establish shrink-to-fit sizing before measuring or restoring a position.
+    host.style.setProperty('position', 'fixed', 'important');
     const shadow = host.attachShadow({ mode: 'open' });
     // CSSOM styles work even when the page's CSP blocks inline <style> tags.
     const stylesheet = new CSSStyleSheet();
@@ -158,10 +162,14 @@
                 border-radius:6px; background:#262626; color:#fff; cursor:pointer; font:inherit;
                 box-shadow:0 2px 8px #0003; white-space:nowrap; }
             button:hover { background:#444; }
+            .copy { cursor:grab; touch-action:none; user-select:none; transition:transform 0.2s ease; }
+            .copy:hover { transform:scale(1.05); }
+            .copy.dragging { cursor:grabbing; transform:scale(1.05); }
+            @media (prefers-reduced-motion:reduce) { .copy { transition:none; } }
             button:focus-visible { outline:3px solid #60a5fa; outline-offset:2px; }
             /* Reserve the second row even when hidden so hover never moves Copy. */
             .comments { visibility:hidden; }
-            .controls:hover .comments, .controls:focus-within .comments { visibility:visible; }
+            .controls:hover .comments, .controls:has(:focus-visible) .comments { visibility:visible; }
             .status { position:absolute; right:0; bottom:100%; margin-bottom:8px; width:max-content;
                 max-width:min(280px, 80vw); color:#fff; background:#262626; border-radius:6px; padding:8px 12px; }
             .status:empty { display:none; }
@@ -180,9 +188,11 @@
     // Important shadow-host rules also protect positioning from page CSS.
     document.documentElement.appendChild(host);
 
-    // Like the reference exporter box, use fixed positioning and viewport
-    // coordinates. Set properties through CSSOM instead of an inline style tag.
-    function positionBox() {
+    const savedPosition = typeof GM_getValue === 'function' ? GM_getValue('copy-button-position', null) : null;
+    let manualPosition = savedPosition && Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y)
+        ? { x: Math.max(0, Math.min(1, savedPosition.x)), y: Math.max(0, Math.min(1, savedPosition.y)) } : null;
+
+    function viewportBounds() {
         const viewport = window.visualViewport;
         const left = viewport?.offsetLeft || 0;
         const top = viewport?.offsetTop || 0;
@@ -190,20 +200,77 @@
         const height = viewport?.height || window.innerHeight;
         const margin = 20 / (viewport?.scale || 1);
         const bottomMargin = 32 / (viewport?.scale || 1);
+        // Leave room for the 5% hover enlargement at each edge.
+        const inset = 4 / (viewport?.scale || 1);
+        return { left, top, width, height, margin, bottomMargin,
+            minX: inset, minY: inset,
+            maxX: Math.max(inset, width - host.offsetWidth - inset),
+            maxY: Math.max(inset, height - host.offsetHeight - inset) };
+    }
+
+    // Preserve the chosen position relative to the visible viewport on zoom/resize.
+    function positionBox() {
+        const bounds = viewportBounds();
+        const x = manualPosition
+            ? bounds.minX + manualPosition.x * (bounds.maxX - bounds.minX)
+            : Math.max(bounds.minX, bounds.width - host.offsetWidth - bounds.margin);
+        const y = manualPosition
+            ? bounds.minY + manualPosition.y * (bounds.maxY - bounds.minY)
+            : Math.max(bounds.minY, bounds.height - host.offsetHeight - bounds.bottomMargin);
         host.style.setProperty('position', 'fixed', 'important');
         host.style.setProperty('display', 'block', 'important');
         host.style.setProperty('z-index', '2147483647', 'important');
         host.style.setProperty('margin', '0', 'important');
         host.style.setProperty('right', 'auto', 'important');
         host.style.setProperty('bottom', 'auto', 'important');
-        host.style.setProperty('left', `${left + Math.max(0, width - host.offsetWidth - margin)}px`, 'important');
-        host.style.setProperty('top', `${top + Math.max(0, height - host.offsetHeight - bottomMargin)}px`, 'important');
+        host.style.setProperty('left', `${bounds.left + x}px`, 'important');
+        host.style.setProperty('top', `${bounds.top + y}px`, 'important');
     }
     positionBox();
     window.addEventListener('resize', positionBox);
     window.visualViewport?.addEventListener('resize', positionBox);
     window.visualViewport?.addEventListener('scroll', positionBox);
     new ResizeObserver(positionBox).observe(host);
+
+    const copyButton = shadow.querySelector('.copy');
+    let drag = null;
+    let suppressClick = false;
+    copyButton.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0 || !event.isPrimary) return;
+        suppressClick = false;
+        drag = { id: event.pointerId, x: event.clientX, y: event.clientY,
+            left: host.offsetLeft, top: host.offsetTop, moved: false };
+        copyButton.setPointerCapture(event.pointerId);
+    });
+    copyButton.addEventListener('pointermove', (event) => {
+        if (!drag || event.pointerId !== drag.id) return;
+        const dx = event.clientX - drag.x;
+        const dy = event.clientY - drag.y;
+        if (!drag.moved && Math.hypot(dx, dy) <= 3) return;
+        drag.moved = true;
+        copyButton.classList.add('dragging');
+        const bounds = viewportBounds();
+        const x = Math.max(bounds.minX, Math.min(bounds.maxX, drag.left + dx - bounds.left));
+        const y = Math.max(bounds.minY, Math.min(bounds.maxY, drag.top + dy - bounds.top));
+        manualPosition = {
+            x: (x - bounds.minX) / (bounds.maxX - bounds.minX || 1),
+            y: (y - bounds.minY) / (bounds.maxY - bounds.minY || 1)
+        };
+        positionBox();
+    });
+    function finishDrag(event) {
+        if (!drag || event.pointerId !== drag.id) return;
+        suppressClick = drag.moved;
+        if (drag.moved && typeof GM_setValue === 'function') {
+            GM_setValue('copy-button-position', manualPosition);
+        }
+        drag = null;
+        copyButton.classList.remove('dragging');
+        if (copyButton.hasPointerCapture(event.pointerId)) copyButton.releasePointerCapture(event.pointerId);
+    }
+    copyButton.addEventListener('pointerup', finishDrag);
+    copyButton.addEventListener('pointercancel', finishDrag);
+    copyButton.addEventListener('lostpointercapture', finishDrag);
 
     let statusTimer;
     let copying = false;
@@ -227,6 +294,12 @@
             statusTimer = setTimeout(() => { status.textContent = ''; }, 3000);
         }
     }
-    shadow.querySelector('.copy').addEventListener('click', () => copy(false));
+    copyButton.addEventListener('click', (event) => {
+        if (suppressClick && event.detail !== 0) {
+            suppressClick = false;
+            return;
+        }
+        copy(false);
+    });
     shadow.querySelector('.comments').addEventListener('click', () => copy(true));
 })();
